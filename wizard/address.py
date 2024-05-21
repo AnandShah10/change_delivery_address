@@ -5,12 +5,24 @@ from lxml import etree
 class ChangeDeliveryAddress(models.TransientModel):
     _name = 'change.delivery.address'
     _description = 'Change the delivery address of sale order'
-    _rec_name = 'address'
+    # _rec_name = 'address'
 
     # partner_id = fields.Many2one('res.partner', compute='_compute_customer')
     # addr = fields.Many2many('res.partner', compute='_compute_addr', search='_search_addr')
     address = fields.Many2one('res.partner', string='Address',
-                              domain=[('type', '=', 'delivery')])
+                              domain=[('type', '=', 'delivery')],
+                              store=False, required=True)
+                              # domain=lambda self: self._get_address_domain())
+
+    # @api.depends_context('partner_id')
+    def _get_address_domain(self, partner_id=None):
+        print(self._context, "Context@@@@@@@@@@@@@@@@@")
+        if partner_id:
+            # print("hiiiiiiiiiiiii!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",self.env.context.get('partner_id'))
+            domain = [('type', '=', 'delivery'), ('parent_id', '=', partner_id)]
+        else:
+            domain = [('type', '=', 'delivery')]
+        return domain
 
     # def _compute_addr(self):
     #     active_id = self._context.get('active_id')
@@ -42,42 +54,44 @@ class ChangeDeliveryAddress(models.TransientModel):
     #     print("hello search fetch",domain,field_names,'###############################')
     #     return super().search_fetch(domain, field_names, offset, limit, order)
 
-    # @api.model
-    # def default_get(self, fields):
-    #     print('In here!!!!!!!!!!!!!!!!!!!!!!')
-    #     # self.modified(['address'])
-    #     """
-    #     Override default_get method to dynamically set domain for address field.
-    #     """
-    #     print(self.fields_get(['address']), '***********************Address')
-    #     res = super(ChangeDeliveryAddress, self).default_get(fields)
-    #     print("Done with the response..........................", res)
-    #     active_id = self._context.get('active_id')
-    #     if active_id:
-    #         print('active is here.....................', active_id)
-    #         order = self.env['sale.order'].browse(active_id)
-    #         partner_id = order.partner_id.id
-    #         print('Partner@@@@@@@@@@@@@@@@@@@', partner_id)
-    #         if partner_id:
-    #             res.update({'address': partner_id})
-    #             print("here...............................")
-    #             domain = [('type', '=', 'delivery'), ('parent_id', '=', partner_id)]
-    #             print(self.fields_get(['address']), '***********************Address')
-    #             print(self.fields_get(['address'])['address'], '__________________Address')
-    #             print(self.fields_get(['address'])['address']['domain'], '***********************Domain')
-    #             # self.fields_get(['address'])['address'].update({'domain': domain})
-    #             # print(self.fields_get(['address'])['address']['domain'], ',,,,,,,,,,,,,Domain Again')
-    #             # self.fields_get(['address'])['address']['domain'] = domain
-    #             print(self.fields_get(['address'])['address']['domain'], ',,,,,,,,,,,,,Domain Again2')
-    #             # self.env.context = dict(self.env.context, address_domain=domain)
-    #             # print(self.env.context, 'Context...............')
-    #             print(res, 'Response again...............')
-    #             # self.filtered_domain(domain)
-    #     return res
-
+    @api.model
+    def default_get(self, fields):
+        print('In here!!!!!!!!!!!!!!!!!!!!!!')
+        print(self._context, 'COntext working????????/')
+        self._get_address_domain(self._context.get('partner_id'))
+        # self.modified(['address'])
+        """
+        Override default_get method to dynamically set domain for address field.
+        """
+        print(self.fields_get(['address']), '***********************Address')
+        res = super(ChangeDeliveryAddress, self).default_get(fields)
+        print("Done with the response..........................", res)
+        active_id = self._context.get('active_id')
+        if active_id:
+            print('active is here.....................', active_id)
+            order = self.env['sale.order'].browse(active_id)
+            partner_id = order.partner_id.id
+            print('Partner@@@@@@@@@@@@@@@@@@@', partner_id)
+            if partner_id:
+                res.update({'address': partner_id})
+                print("here...............................")
+                domain = [('type', '=', 'delivery'), ('parent_id', '=', partner_id)]
+                print(self.fields_get(['address']), '***********************Address')
+                print(self.fields_get(['address'])['address'], '__________________Address')
+                print(self.fields_get(['address'])['address']['domain'], '***********************Domain')
+                # self.fields_get(['address'])['address'].update({'domain': domain})
+                # print(self.fields_get(['address'])['address']['domain'], ',,,,,,,,,,,,,Domain Again')
+                # self.fields_get(['address'])['address']['domain'] = domain
+                print(self.fields_get(['address'])['address']['domain'], ',,,,,,,,,,,,,Domain Again2')
+                # self.env.context = dict(self.env.context, address_domain=domain)
+                # print(self.env.context, 'Context...............')
+                print(res, 'Response again...............')
+                # self.filtered_domain(domain)
+        return res
+    #
     # @api.model
     # def fields_get(self, allfields=None, attributes=None):
-    #     print(attributes,'Attributes')
+    #     print(attributes, 'Attributes')
     #     print('fields here entered@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
     #     """ Hide analytic_distribution_search from filterable/searchable fields"""
     #     active_id = self._context.get('active_id')
@@ -90,14 +104,17 @@ class ChangeDeliveryAddress(models.TransientModel):
     #         if partner_id:
     #             # res.update({'address': partner_id})
     #             print("here...............................")
-    #             domain = f"[('type', '=', 'delivery'), ('parent_id', '=', {partner_id.id})]"
+    #             domain = [('type', '=', 'delivery'), ('parent_id', '=', partner_id.id)]
     #
-    #     res = super(ChangeDeliveryAddress,self).fields_get(allfields, attributes)
-    #     print('response of fields!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    #     res = super(ChangeDeliveryAddress, self).fields_get(allfields, attributes)
+    #     print('response of fields!!!!!!!!!!!!!!!!!!!!!!!!!!!', res)
     #     if res.get('address'):
     #         print(res.get('address'), 'address here11111111111111111111111111')
     #         res['address']['domain'] = domain
+    #         res['address']['manual'] = True
+    #         res['address']['change_default'] = True
     #         print(res['address']['domain'], 'Field domain')
+    #         print(res, 'res check#####')
     #
     #     return res
 
@@ -116,7 +133,7 @@ class ChangeDeliveryAddress(models.TransientModel):
     #             print("here...............................")
     #             domain = f"[('type', '=', 'delivery'), ('parent_id', '=', {partner_id.id})]"
     #     res = {'domain': {'address': domain}}
-    #     print(res,'domain???????????????????')
+    #     print(res, 'domain???????????????????')
     #     return res
 
     # @api.model
